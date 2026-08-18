@@ -21,7 +21,7 @@
         "data_description": {
           "api_key": "Je Scaleway API-geheime sleutel. Begint met 'scw-' of is een UUID.",
           "project_id": "Scaleway-project-ID om aanroepen te beperken tot een specifiek project. Laat leeg om je standaardproject te gebruiken.",
-          "base_url": "OpenAI-compatibel endpoint. Laat de standaardwaarde staan voor serverless Generative APIs. Zet het op je Managed Inference-URL (bv. https://YOUR-DEPLOYMENT-ID.ifr.fr-par.scaleway.com/v1) om een dedicated deployment te gebruiken."
+          "base_url": "OpenAI-compatibel endpoint. Laat de standaardwaarde staan voor serverless Generative APIs, of voer de URL van je Scaleway Managed Inference-deployment in."
         }
       },
       "reauth_confirm": {
