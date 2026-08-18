@@ -1,4 +1,4 @@
 pytest-homeassistant-custom-component
 respx>=0.21
-openai>=1.99,<2
+openai>=2.45.0
 pytest-cov
