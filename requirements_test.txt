@@ -1,0 +1,4 @@
+pytest-homeassistant-custom-component
+respx>=0.21
+openai>=1.99,<2
+pytest-cov

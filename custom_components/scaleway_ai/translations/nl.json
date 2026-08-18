@@ -1,0 +1,80 @@
+{
+  "config": {
+    "abort": {
+      "already_configured": "Dienst is al geconfigureerd",
+      "reauth_successful": "Herauthenticatie geslaagd"
+    },
+    "error": {
+      "cannot_connect": "Verbinden mislukt",
+      "invalid_auth": "Ongeldige authenticatie",
+      "unknown": "Onverwachte fout"
+    },
+    "step": {
+      "user": {
+        "title": "Verbinden met Scaleway AI",
+        "description": "Voer je Scaleway-gegevens in. Je kunt een API-geheime sleutel aanmaken in de Scaleway-console onder IAM \u2192 API Keys. De sleutel heeft de *Generative APIs*-permissie nodig.",
+        "data": {
+          "api_key": "API-geheime sleutel",
+          "project_id": "Project-ID (optioneel)",
+          "base_url": "Basis-URL (geavanceerd)"
+        },
+        "data_description": {
+          "api_key": "Je Scaleway API-geheime sleutel. Begint met 'scw-' of is een UUID.",
+          "project_id": "Scaleway-project-ID om aanroepen te beperken tot een specifiek project. Laat leeg om je standaardproject te gebruiken.",
+          "base_url": "OpenAI-compatibel endpoint. Laat de standaardwaarde staan voor serverless Generative APIs. Zet het op je Managed Inference-URL (bv. https://<uuid>.ifr.fr-par.scaleway.com/v1) om een dedicated deployment te gebruiken."
+        }
+      },
+      "reauth_confirm": {
+        "title": "Herauthenticeer Scaleway AI",
+        "description": "Je Scaleway API-sleutel wordt niet meer geaccepteerd. Voer een nieuwe geheime sleutel in.",
+        "data": {
+          "api_key": "API-geheime sleutel"
+        }
+      }
+    }
+  },
+  "config_subentries": {
+    "conversation": {
+      "initiate_flow": {
+        "user": "Conversatie-agent toevoegen",
+        "reconfigure": "Conversatie-agent opnieuw configureren"
+      },
+      "entry_type": "Conversatie-agent",
+      "abort": {
+        "entry_not_loaded": "Kan geen conversatie-agent toevoegen zolang de Scaleway AI-integratie uitgeschakeld of niet geladen is.",
+        "reconfigure_successful": "Herconfiguratie geslaagd"
+      },
+      "step": {
+        "init": {
+          "title": "Conversatie-agent",
+          "description": "Geef deze assistent een naam en bepaal hoe hij zich moet gedragen.",
+          "data": {
+            "name": "Naam",
+            "prompt": "Instructies",
+            "llm_hass_api": "Home Assistant bedienen"
+          },
+          "data_description": {
+            "prompt": "Instructies die het LLM zal volgen. Dit is een Jinja2-template met toegang tot Home Assistant-status (gebieden, gedeelde entiteiten, huidige tijd, \u2026).",
+            "llm_hass_api": "Welke Home Assistant LLM-API's de agent mag aanroepen. Laat leeg voor een pure chat-agent die niets kan bedienen."
+          }
+        },
+        "model": {
+          "title": "Model & generatieparameters",
+          "description": "Kies een Scaleway-model en stel de generatieparameters in. Verstandige standaardwaarden zijn ingevuld.",
+          "data": {
+            "chat_model": "Model",
+            "temperature": "Temperatuur",
+            "top_p": "Top P",
+            "max_tokens": "Maximaal aantal uitvoertokens"
+          },
+          "data_description": {
+            "chat_model": "Elk Scaleway Generative APIs-chatmodel. De lijst wordt live opgehaald uit je account; je kunt ook een model-ID handmatig typen.",
+            "temperature": "Hoger = creatiever, lager = deterministischer. Gebruikelijk bereik 0,2\u20131,0.",
+            "top_p": "Nucleus-sampling-drempel. Meestal op 1,0 laten staan tenzij je specifiek een lagere waarde wilt.",
+            "max_tokens": "Maximale lengte van het antwoord van de assistent, in tokens."
+          }
+        }
+      }
+    }
+  }
+}

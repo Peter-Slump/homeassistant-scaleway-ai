@@ -1,0 +1,62 @@
+[project]
+name = "homeassistant-scaleway-ai"
+version = "0.1.0"
+description = "Home Assistant integration for Scaleway's AI APIs (Generative APIs + Managed Inference)."
+readme = "README.md"
+requires-python = ">=3.13"
+license = { text = "MIT" }
+authors = [{ name = "Peter Slump", email = "peter@peakfijn.nl" }]
+
+[tool.ruff]
+line-length = 88
+target-version = "py313"
+extend-exclude = ["config"]
+
+[tool.ruff.lint]
+select = [
+    "E",    # pycodestyle errors
+    "W",    # pycodestyle warnings
+    "F",    # pyflakes
+    "I",    # isort
+    "UP",   # pyupgrade
+    "B",    # flake8-bugbear
+    "SIM",  # flake8-simplify
+    "C4",   # flake8-comprehensions
+    "PL",   # pylint
+    "RUF",  # ruff-specific
+    "ASYNC",# async correctness
+    "N",    # pep8-naming
+    "TID",  # flake8-tidy-imports
+    "PIE",  # flake8-pie
+    "PT",   # flake8-pytest-style
+]
+ignore = [
+    "PLR0913", # too many arguments (HA callbacks routinely have many)
+    "PLR2004", # magic values (noisy in tests)
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S101", "PLR2004"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["custom_components.scaleway_ai"]
+force-sort-within-sections = true
+combine-as-imports = true
+
+[tool.mypy]
+python_version = "3.13"
+strict = true
+warn_unreachable = true
+warn_return_any = true
+disallow_untyped_decorators = false  # HA uses many untyped decorators
+plugins = []
+exclude = ["tests/", "config/"]
+
+[[tool.mypy.overrides]]
+module = ["homeassistant.*", "pytest_homeassistant_custom_component.*"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+addopts = "-ra -q --strict-markers --cov=custom_components.scaleway_ai --cov-report=term-missing"

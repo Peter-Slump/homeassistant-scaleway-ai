@@ -1,0 +1,7 @@
+{
+  "name": "Scaleway AI",
+  "content_in_root": false,
+  "render_readme": true,
+  "zip_release": false,
+  "homeassistant": "2026.1.0"
+}

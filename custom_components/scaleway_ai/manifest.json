@@ -1,0 +1,13 @@
+{
+  "domain": "scaleway_ai",
+  "name": "Scaleway AI",
+  "codeowners": ["@Peter-Slump"],
+  "config_flow": true,
+  "dependencies": ["conversation"],
+  "documentation": "https://github.com/Peter-Slump/homeassistant-scaleway-ai",
+  "integration_type": "service",
+  "iot_class": "cloud_polling",
+  "issue_tracker": "https://github.com/Peter-Slump/homeassistant-scaleway-ai/issues",
+  "requirements": ["openai>=1.99,<2"],
+  "version": "0.1.0"
+}

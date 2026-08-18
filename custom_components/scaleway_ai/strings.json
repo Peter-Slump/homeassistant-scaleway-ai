@@ -1,0 +1,80 @@
+{
+  "config": {
+    "abort": {
+      "already_configured": "[%key:common::config_flow::abort::already_configured_service%]",
+      "reauth_successful": "[%key:common::config_flow::abort::reauth_successful%]"
+    },
+    "error": {
+      "cannot_connect": "[%key:common::config_flow::error::cannot_connect%]",
+      "invalid_auth": "[%key:common::config_flow::error::invalid_auth%]",
+      "unknown": "[%key:common::config_flow::error::unknown%]"
+    },
+    "step": {
+      "user": {
+        "title": "Connect to Scaleway AI",
+        "description": "Enter your Scaleway credentials. You can generate an API secret key in the Scaleway console under IAM \u2192 API Keys. The key needs the *Generative APIs* permission.",
+        "data": {
+          "api_key": "API secret key",
+          "project_id": "Project ID (optional)",
+          "base_url": "Base URL (advanced)"
+        },
+        "data_description": {
+          "api_key": "Your Scaleway API secret key. Starts with 'scw-' or is a UUID.",
+          "project_id": "Scaleway project ID to scope calls to a specific project. Leave blank to use your default project.",
+          "base_url": "OpenAI-compatible endpoint. Leave the default for serverless Generative APIs. Set to your Managed Inference URL (e.g. https://<uuid>.ifr.fr-par.scaleway.com/v1) to use a dedicated deployment."
+        }
+      },
+      "reauth_confirm": {
+        "title": "Reauthenticate Scaleway AI",
+        "description": "Your Scaleway API key is no longer accepted. Enter a new secret key.",
+        "data": {
+          "api_key": "API secret key"
+        }
+      }
+    }
+  },
+  "config_subentries": {
+    "conversation": {
+      "initiate_flow": {
+        "user": "Add conversation agent",
+        "reconfigure": "Reconfigure conversation agent"
+      },
+      "entry_type": "Conversation agent",
+      "abort": {
+        "entry_not_loaded": "Cannot add a conversation agent while the Scaleway AI integration is disabled or unloaded.",
+        "reconfigure_successful": "[%key:common::config_flow::abort::reconfigure_successful%]"
+      },
+      "step": {
+        "init": {
+          "title": "Conversation agent",
+          "description": "Give this assistant a name and decide how it should behave.",
+          "data": {
+            "name": "[%key:common::config_flow::data::name%]",
+            "prompt": "[%key:common::config_flow::data::prompt%]",
+            "llm_hass_api": "[%key:common::config_flow::data::llm_hass_api%]"
+          },
+          "data_description": {
+            "prompt": "Instructions the LLM will follow. This is a Jinja2 template with access to Home Assistant state (areas, exposed entities, current time, \u2026).",
+            "llm_hass_api": "Which Home Assistant LLM APIs the agent may call. Leave empty for a pure chat agent that can't control anything."
+          }
+        },
+        "model": {
+          "title": "Model & generation parameters",
+          "description": "Pick a Scaleway model and tune generation parameters. Sensible defaults are pre-filled.",
+          "data": {
+            "chat_model": "Model",
+            "temperature": "Temperature",
+            "top_p": "Top P",
+            "max_tokens": "Maximum output tokens"
+          },
+          "data_description": {
+            "chat_model": "Any Scaleway Generative APIs chat model. The list is fetched live from your account; you can also type a model ID manually.",
+            "temperature": "Higher = more creative, lower = more deterministic. Typical range 0.2\u20131.0.",
+            "top_p": "Nucleus sampling cutoff. Usually leave at 1.0 unless you know you want it lower.",
+            "max_tokens": "Maximum length of the assistant response, in tokens."
+          }
+        }
+      }
+    }
+  }
+}
