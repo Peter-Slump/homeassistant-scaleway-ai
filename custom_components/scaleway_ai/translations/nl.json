@@ -75,6 +75,32 @@
           }
         }
       }
+    },
+    "stt": {
+      "initiate_flow": {
+        "user": "Spraak-naar-tekst toevoegen",
+        "reconfigure": "Spraak-naar-tekst opnieuw configureren"
+      },
+      "entry_type": "Spraak-naar-tekst",
+      "abort": {
+        "entry_not_loaded": "Kan geen spraak-naar-tekst toevoegen zolang de Scaleway AI-integratie uitgeschakeld of niet geladen is.",
+        "reconfigure_successful": "Herconfiguratie geslaagd"
+      },
+      "step": {
+        "init": {
+          "title": "Spraak-naar-tekst",
+          "description": "Configureer Scaleway Whisper-transcriptie voor Assist.",
+          "data": {
+            "name": "Naam",
+            "stt_model": "Model",
+            "prompt": "Instructies"
+          },
+          "data_description": {
+            "stt_model": "Het Scaleway-model voor spraaktranscriptie. Standaard whisper-large-v3.",
+            "prompt": "Optionele context om de transcriptiekwaliteit te verbeteren. Vertaal naar de pipetaal voor het beste resultaat met Nederlands of Engels."
+          }
+        }
+      }
     }
   }
 }

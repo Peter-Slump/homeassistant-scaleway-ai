@@ -14,6 +14,7 @@ CONF_PROJECT_ID: Final = "project_id"
 CONF_BASE_URL: Final = "base_url"
 
 CONF_CHAT_MODEL: Final = "chat_model"
+CONF_STT_MODEL: Final = "stt_model"
 CONF_TEMPERATURE: Final = "temperature"
 CONF_MAX_TOKENS: Final = "max_tokens"
 CONF_TOP_P: Final = "top_p"
@@ -23,6 +24,15 @@ DEFAULT_BASE_URL: Final = "https://api.scaleway.ai/v1"
 # Default model: EU-native, cheap, strong multilingual (incl. Dutch),
 # solid tool calling. Users can pick any listed by GET /v1/models at setup.
 DEFAULT_MODEL: Final = "mistral-small-3.2-24b-instruct-2506"
+
+# Scaleway serverless STT model (OpenAI-compatible /v1/audio/transcriptions).
+DEFAULT_STT_MODEL: Final = "whisper-large-v3"
+
+DEFAULT_STT_PROMPT: Final = (
+    "The following conversation is a smart home user talking to Home Assistant."
+)
+
+DEFAULT_STT_NAME: Final = "Scaleway AI STT"
 
 DEFAULT_TEMPERATURE: Final = 0.7
 DEFAULT_MAX_TOKENS: Final = 1024
@@ -45,4 +55,10 @@ FALLBACK_CHAT_MODELS: Final[tuple[str, ...]] = (
     "glm-5.2",
 )
 
+FALLBACK_STT_MODELS: Final[tuple[str, ...]] = (
+    "whisper-large-v3",
+    "voxtral-small-24b-2507",
+)
+
 SUBENTRY_TYPE_CONVERSATION: Final = "conversation"
+SUBENTRY_TYPE_STT: Final = "stt"

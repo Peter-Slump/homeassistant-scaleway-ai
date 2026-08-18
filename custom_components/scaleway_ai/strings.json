@@ -75,6 +75,32 @@
           }
         }
       }
+    },
+    "stt": {
+      "initiate_flow": {
+        "user": "Add speech-to-text service",
+        "reconfigure": "Reconfigure speech-to-text service"
+      },
+      "entry_type": "Speech-to-text",
+      "abort": {
+        "entry_not_loaded": "Cannot add a speech-to-text service while the Scaleway AI integration is disabled or unloaded.",
+        "reconfigure_successful": "[%key:common::config_flow::abort::reconfigure_successful%]"
+      },
+      "step": {
+        "init": {
+          "title": "Speech-to-text",
+          "description": "Configure Scaleway Whisper transcription for Assist.",
+          "data": {
+            "name": "[%key:common::config_flow::data::name%]",
+            "stt_model": "Model",
+            "prompt": "[%key:common::config_flow::data::prompt%]"
+          },
+          "data_description": {
+            "stt_model": "The Scaleway model used to transcribe speech. Defaults to whisper-large-v3.",
+            "prompt": "Optional context to improve transcription quality. Translate to the pipeline language for best results with Dutch or English."
+          }
+        }
+      }
     }
   }
 }

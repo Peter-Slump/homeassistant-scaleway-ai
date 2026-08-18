@@ -36,6 +36,9 @@ from homeassistant.helpers.selector import (
     SelectSelectorConfig,
     SelectSelectorMode,
     TemplateSelector,
+    TextSelector,
+    TextSelectorConfig,
+    TextSelectorType,
 )
 from homeassistant.helpers.typing import VolDictType
 import openai
@@ -46,17 +49,23 @@ from .const import (
     CONF_CHAT_MODEL,
     CONF_MAX_TOKENS,
     CONF_PROJECT_ID,
+    CONF_STT_MODEL,
     CONF_TEMPERATURE,
     CONF_TOP_P,
     DEFAULT_BASE_URL,
     DEFAULT_MAX_TOKENS,
     DEFAULT_MODEL,
+    DEFAULT_STT_MODEL,
+    DEFAULT_STT_NAME,
+    DEFAULT_STT_PROMPT,
     DEFAULT_TEMPERATURE,
     DEFAULT_TOP_P,
     DOMAIN,
     FALLBACK_CHAT_MODELS,
+    FALLBACK_STT_MODELS,
     LOGGER,
     SUBENTRY_TYPE_CONVERSATION,
+    SUBENTRY_TYPE_STT,
 )
 
 CONF_ADVANCED = "advanced"
@@ -81,6 +90,11 @@ RECOMMENDED_CONVERSATION_OPTIONS: dict[str, Any] = {
 }
 
 DEFAULT_CONVERSATION_NAME = "Scaleway AI Conversation"
+
+RECOMMENDED_STT_OPTIONS: dict[str, Any] = {
+    CONF_STT_MODEL: DEFAULT_STT_MODEL,
+    CONF_PROMPT: DEFAULT_STT_PROMPT,
+}
 
 
 async def _validate_credentials(hass: HomeAssistant, data: dict[str, Any]) -> None:
@@ -122,6 +136,21 @@ async def _list_chat_models(
         return list(FALLBACK_CHAT_MODELS)
 
 
+async def _list_stt_models(
+    hass: HomeAssistant, entry_data: Mapping[str, Any]
+) -> list[str]:
+    """Fetch STT models from Scaleway; fall back to a hardcoded shortlist."""
+    all_models = await _list_chat_models(hass, entry_data)
+    stt_models = [
+        model
+        for model in all_models
+        if "whisper" in model or "voxtral" in model or model in FALLBACK_STT_MODELS
+    ]
+    if not stt_models:
+        return list(FALLBACK_STT_MODELS)
+    return stt_models
+
+
 class ScalewayAIConfigFlow(ConfigFlow, domain=DOMAIN):
     """Parent config flow for Scaleway AI credentials."""
 
@@ -159,7 +188,13 @@ class ScalewayAIConfigFlow(ConfigFlow, domain=DOMAIN):
                             "data": RECOMMENDED_CONVERSATION_OPTIONS,
                             "title": DEFAULT_CONVERSATION_NAME,
                             "unique_id": None,
-                        }
+                        },
+                        {
+                            "subentry_type": SUBENTRY_TYPE_STT,
+                            "data": RECOMMENDED_STT_OPTIONS,
+                            "title": DEFAULT_STT_NAME,
+                            "unique_id": None,
+                        },
                     ],
                 )
 
@@ -195,7 +230,10 @@ class ScalewayAIConfigFlow(ConfigFlow, domain=DOMAIN):
         cls, config_entry: ConfigEntry
     ) -> dict[str, type[ConfigSubentryFlow]]:
         """Advertise the subentry types this integration supports."""
-        return {SUBENTRY_TYPE_CONVERSATION: ConversationSubentryFlow}
+        return {
+            SUBENTRY_TYPE_CONVERSATION: ConversationSubentryFlow,
+            SUBENTRY_TYPE_STT: STTSubentryFlow,
+        }
 
 
 class ConversationSubentryFlow(ConfigSubentryFlow):
@@ -333,6 +371,93 @@ class ConversationSubentryFlow(ConfigSubentryFlow):
 
         return self.async_show_form(
             step_id="model",
+            data_schema=self.add_suggested_values_to_schema(
+                vol.Schema(step_schema), options
+            ),
+        )
+
+
+class STTSubentryFlow(ConfigSubentryFlow):
+    """Add/reconfigure a speech-to-text service under a Scaleway AI entry."""
+
+    def __init__(self) -> None:
+        """Init mutable state carried between steps."""
+        self._options: dict[str, Any] = {}
+
+    @property
+    def _is_new(self) -> bool:
+        """True when this is a fresh subentry (vs. a reconfigure)."""
+        return self.source == "user"
+
+    async def async_step_user(
+        self, user_input: dict[str, Any] | None = None
+    ) -> SubentryFlowResult:
+        """Entry point for creating a new STT subentry."""
+        self._options = {**RECOMMENDED_STT_OPTIONS}
+        return await self.async_step_init()
+
+    async def async_step_reconfigure(
+        self, user_input: dict[str, Any] | None = None
+    ) -> SubentryFlowResult:
+        """Entry point for editing an existing STT subentry."""
+        self._options = dict(self._get_reconfigure_subentry().data)
+        return await self.async_step_init()
+
+    async def async_step_init(
+        self, user_input: dict[str, Any] | None = None
+    ) -> SubentryFlowResult:
+        """Configure name, model and optional transcription prompt."""
+        entry = self._get_entry()
+        if entry.state is not ConfigEntryState.LOADED:
+            return self.async_abort(reason="entry_not_loaded")
+
+        options = self._options
+        model_options = await _list_stt_models(self.hass, entry.data)
+        current_model = options.get(CONF_STT_MODEL, DEFAULT_STT_MODEL)
+        if current_model not in model_options:
+            model_options = [current_model, *model_options]
+
+        step_schema: VolDictType = {
+            vol.Optional(
+                CONF_STT_MODEL,
+                default=options.get(CONF_STT_MODEL, DEFAULT_STT_MODEL),
+            ): SelectSelector(
+                SelectSelectorConfig(
+                    options=[
+                        SelectOptionDict(label=m, value=m) for m in model_options
+                    ],
+                    mode=SelectSelectorMode.DROPDOWN,
+                    custom_value=True,
+                )
+            ),
+            vol.Optional(
+                CONF_PROMPT,
+                description={
+                    "suggested_value": options.get(CONF_PROMPT, DEFAULT_STT_PROMPT)
+                },
+            ): TextSelector(
+                TextSelectorConfig(multiline=True, type=TextSelectorType.TEXT)
+            ),
+        }
+
+        if self._is_new:
+            step_schema[
+                vol.Required(CONF_NAME, default=DEFAULT_STT_NAME)
+            ] = str
+
+        if user_input is not None:
+            options.update(user_input)
+            if self._is_new:
+                title = options.pop(CONF_NAME, DEFAULT_STT_NAME)
+                return self.async_create_entry(title=title, data=options)
+            return self.async_update_and_abort(
+                entry,
+                self._get_reconfigure_subentry(),
+                data=options,
+            )
+
+        return self.async_show_form(
+            step_id="init",
             data_schema=self.add_suggested_values_to_schema(
                 vol.Schema(step_schema), options
             ),

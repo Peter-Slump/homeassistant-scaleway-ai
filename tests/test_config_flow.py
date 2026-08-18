@@ -17,6 +17,7 @@ from custom_components.scaleway_ai.const import (
     DEFAULT_BASE_URL,
     DOMAIN,
     SUBENTRY_TYPE_CONVERSATION,
+    SUBENTRY_TYPE_STT,
 )
 
 
@@ -35,7 +36,7 @@ async def test_user_flow_happy_path(
     hass: HomeAssistant,
     mock_setup_entry: AsyncMock,
 ) -> None:
-    """Valid API key creates an entry with a default conversation subentry."""
+    """Valid API key creates default conversation and STT subentries."""
     result = await hass.config_entries.flow.async_init(
         DOMAIN, context={"source": config_entries.SOURCE_USER}
     )
@@ -59,6 +60,7 @@ async def test_user_flow_happy_path(
     entry = result["result"]
     subentry_types = {s.subentry_type for s in entry.subentries.values()}
     assert SUBENTRY_TYPE_CONVERSATION in subentry_types
+    assert SUBENTRY_TYPE_STT in subentry_types
 
 
 @pytest.mark.parametrize(

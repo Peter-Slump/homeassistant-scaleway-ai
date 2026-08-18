@@ -18,10 +18,10 @@ from types import MappingProxyType
 from typing import TYPE_CHECKING, Any, cast
 
 from homeassistant.config_entries import ConfigEntry, ConfigSubentry
-from homeassistant.const import CONF_API_KEY, CONF_LLM_HASS_API, CONF_PROMPT, Platform
+from homeassistant.const import CONF_API_KEY, CONF_PROMPT, Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady
-from homeassistant.helpers import config_validation as cv, llm
+from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.httpx_client import get_async_client
 from homeassistant.helpers.typing import ConfigType
 import openai
@@ -29,16 +29,20 @@ import openai
 from .const import (
     CONF_BASE_URL,
     CONF_PROJECT_ID,
+    CONF_STT_MODEL,
     DEFAULT_BASE_URL,
+    DEFAULT_STT_MODEL,
+    DEFAULT_STT_NAME,
+    DEFAULT_STT_PROMPT,
     DOMAIN,
     LOGGER,
-    SUBENTRY_TYPE_CONVERSATION,
+    SUBENTRY_TYPE_STT,
 )
 
 if TYPE_CHECKING:
     pass
 
-PLATFORMS: tuple[Platform, ...] = (Platform.CONVERSATION,)
+PLATFORMS: tuple[Platform, ...] = (Platform.CONVERSATION, Platform.STT)
 
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
@@ -97,29 +101,36 @@ async def _async_update_options(
 async def async_migrate_entry(
     hass: HomeAssistant, entry: ScalewayAIConfigEntry
 ) -> bool:
-    """Migrate old entries. v0.1 ships at VERSION=1 so this is a no-op stub."""
+    """Migrate config entries when integration structure changes."""
     LOGGER.debug(
-        "Migrating from version %s.%s (no migrations defined yet)",
+        "Migrating from version %s.%s",
         entry.version,
         entry.minor_version,
     )
+
+    if entry.version == 1 and entry.minor_version == 1:
+        has_stt = any(
+            subentry.subentry_type == SUBENTRY_TYPE_STT
+            for subentry in entry.subentries.values()
+        )
+        if not has_stt:
+            hass.config_entries.async_add_subentry(
+                entry,
+                ConfigSubentry(
+                    data=MappingProxyType(_default_stt_subentry_data()),
+                    subentry_type=SUBENTRY_TYPE_STT,
+                    title=DEFAULT_STT_NAME,
+                    unique_id=None,
+                ),
+            )
+        hass.config_entries.async_update_entry(entry, minor_version=2)
+
     return True
 
 
-def _default_conversation_subentry() -> ConfigSubentry:
-    """Build the default conversation subentry created on first setup."""
-    from .const import DEFAULT_MODEL, DEFAULT_TEMPERATURE
-
-    return ConfigSubentry(
-        data=MappingProxyType(
-            {
-                "chat_model": DEFAULT_MODEL,
-                "temperature": DEFAULT_TEMPERATURE,
-                CONF_LLM_HASS_API: [llm.LLM_API_ASSIST],
-                CONF_PROMPT: llm.DEFAULT_INSTRUCTIONS_PROMPT,
-            }
-        ),
-        subentry_type=SUBENTRY_TYPE_CONVERSATION,
-        title="Scaleway AI Conversation",
-        unique_id=None,
-    )
+def _default_stt_subentry_data() -> dict[str, str]:
+    """Default data for a new speech-to-text subentry."""
+    return {
+        CONF_STT_MODEL: DEFAULT_STT_MODEL,
+        CONF_PROMPT: DEFAULT_STT_PROMPT,
+    }

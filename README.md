@@ -4,18 +4,19 @@ A Home Assistant custom integration that connects Home Assistant's Assist pipeli
 to [Scaleway's Generative APIs](https://www.scaleway.com/en/generative-apis/) —
 EU-hosted, OpenAI-compatible LLM inference running in `fr-par`.
 
-> **Status:** MVP scaffolding. v0.1 ships a conversation agent only.
-> Speech-to-text (Whisper) is on the roadmap; text-to-speech is not offered by
-> Scaleway as a hosted service today and will only be added if that changes or
-> via user-supplied Managed Inference endpoints.
+> **Status:** v0.2 ships a conversation agent and speech-to-text via Whisper.
+> Text-to-speech is not offered by Scaleway as a hosted service today and will
+> only be added if that changes or via user-supplied Managed Inference endpoints.
 
 ## Features
 
 - **Conversation agent** — plug Scaleway's chat models (Mistral, Llama, Qwen,
   GPT-OSS, DeepSeek, GLM, …) into Home Assistant's built-in Assist pipeline.
-- **Multi-persona** — create as many conversation agents as you like from a
-  single Scaleway credential, each with its own model, system prompt and
-  temperature.
+- **Speech-to-text** — transcribe voice input via Scaleway's `whisper-large-v3`
+  model (or other listed Whisper/Voxtral models) for full voice Assist pipelines.
+- **Multi-persona** — create as many conversation agents and STT engines as you
+  like from a single Scaleway credential, each with its own model, prompt and
+  settings.
 - **HA tool calling** — agents can control devices, read sensor states and run
   scripts via Home Assistant's `assist` LLM API.
 - **Streaming responses** — token deltas surface in the Assist UI as they
@@ -50,16 +51,18 @@ directory and restart.
    - **Project ID** *(optional)* — scopes calls to a specific Scaleway project.
    - **Base URL** *(advanced)* — defaults to `https://api.scaleway.ai/v1`. Set
      this to your Managed Inference endpoint URL to use a dedicated deployment.
-3. Once the credentials entry exists, add a **Conversation agent** subentry.
-   Pick a model, tweak the system prompt, and choose whether it can control
-   your devices.
-4. In Settings → Voice assistants, create an Assist pipeline that uses your new
-   Scaleway conversation agent.
+3. On first setup, default **Conversation agent** and **Speech-to-text**
+   subentries are created. Add more subentries from the integration's configure
+   menu if you want separate personas or STT profiles.
+4. In Settings → Voice assistants, create an Assist pipeline:
+   - **Speech-to-text:** Scaleway AI STT
+   - **Conversation agent:** Scaleway AI Conversation
+   - **Text-to-speech:** e.g. Piper or another local/cloud TTS engine
 
 ## Roadmap
 
 - v0.1 — Conversation agent ✅
-- v0.2 — Speech-to-text via `whisper-large-v3`
+- v0.2 — Speech-to-text via `whisper-large-v3` ✅
 - v0.x — Text-to-speech (only if/when Scaleway ships a hosted TTS model, or via
   user-supplied Managed Inference URL)
 
