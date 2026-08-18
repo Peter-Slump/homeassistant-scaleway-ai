@@ -44,7 +44,7 @@ force-sort-within-sections = true
 combine-as-imports = true
 
 [tool.mypy]
-python_version = "3.13"
+python_version = "3.14"
 strict = true
 warn_unreachable = true
 warn_return_any = true
@@ -55,6 +55,7 @@ exclude = ["tests/", "config/"]
 [[tool.mypy.overrides]]
 module = ["homeassistant.*", "pytest_homeassistant_custom_component.*", "voluptuous_openapi.*"]
 ignore_missing_imports = true
+ignore_errors = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
