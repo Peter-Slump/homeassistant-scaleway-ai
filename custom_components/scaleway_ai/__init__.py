@@ -15,7 +15,7 @@ home.
 from __future__ import annotations
 
 from types import MappingProxyType
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, cast
 
 from homeassistant.config_entries import ConfigEntry, ConfigSubentry
 from homeassistant.const import CONF_API_KEY, CONF_LLM_HASS_API, CONF_PROMPT, Platform
@@ -55,7 +55,7 @@ def _build_client(hass: HomeAssistant, entry: ConfigEntry) -> openai.AsyncOpenAI
     return openai.AsyncOpenAI(
         api_key=entry.data[CONF_API_KEY],
         base_url=base_url,
-        http_client=get_async_client(hass),
+        http_client=cast(Any, get_async_client(hass)),
     )
 
 

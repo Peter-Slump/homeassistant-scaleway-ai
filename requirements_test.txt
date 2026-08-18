@@ -1,4 +1,6 @@
 pytest-homeassistant-custom-component
+hassil
+home-assistant-intents
 respx>=0.21
 openai>=2.45.0
 pytest-cov

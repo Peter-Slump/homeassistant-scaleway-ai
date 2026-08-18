@@ -53,7 +53,7 @@ plugins = []
 exclude = ["tests/", "config/"]
 
 [[tool.mypy.overrides]]
-module = ["homeassistant.*", "pytest_homeassistant_custom_component.*"]
+module = ["homeassistant.*", "pytest_homeassistant_custom_component.*", "voluptuous_openapi.*"]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]

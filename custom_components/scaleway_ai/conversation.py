@@ -38,7 +38,7 @@ async def async_setup_entry(
 
 class ScalewayAIConversationEntity(
     conversation.ConversationEntity,
-    conversation.AbstractConversationAgent,
+    conversation.AbstractConversationAgent,  # type: ignore[name-defined,misc]
     ScalewayAIBaseLLMEntity,
 ):
     """Conversation agent backed by Scaleway's Generative APIs."""

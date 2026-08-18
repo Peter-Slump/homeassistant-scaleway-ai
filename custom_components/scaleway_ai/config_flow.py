@@ -12,10 +12,11 @@ Shape mirrors `homeassistant.components.openai_conversation.config_flow`
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Any
+from typing import Any, cast
 
 from homeassistant.config_entries import (
     SOURCE_REAUTH,
+    ConfigEntry,
     ConfigEntryState,
     ConfigFlow,
     ConfigFlowResult,
@@ -29,6 +30,7 @@ from homeassistant.helpers.httpx_client import get_async_client
 from homeassistant.helpers.selector import (
     NumberSelector,
     NumberSelectorConfig,
+    NumberSelectorMode,
     SelectOptionDict,
     SelectSelector,
     SelectSelectorConfig,
@@ -91,7 +93,7 @@ async def _validate_credentials(hass: HomeAssistant, data: dict[str, Any]) -> No
     client = openai.AsyncOpenAI(
         api_key=data[CONF_API_KEY],
         base_url=base_url,
-        http_client=get_async_client(hass),
+        http_client=cast(Any, get_async_client(hass)),
     )
     await client.with_options(timeout=10.0).models.list()
 
@@ -109,7 +111,7 @@ async def _list_chat_models(
         client = openai.AsyncOpenAI(
             api_key=entry_data[CONF_API_KEY],
             base_url=base_url,
-            http_client=get_async_client(hass),
+            http_client=cast(Any, get_async_client(hass)),
         )
         result = await client.with_options(timeout=10.0).models.list()
         return sorted(m.id for m in result.data)
@@ -190,7 +192,7 @@ class ScalewayAIConfigFlow(ConfigFlow, domain=DOMAIN):
     @classmethod
     @callback
     def async_get_supported_subentry_types(
-        cls, config_entry
+        cls, config_entry: ConfigEntry
     ) -> dict[str, type[ConfigSubentryFlow]]:
         """Advertise the subentry types this integration supports."""
         return {SUBENTRY_TYPE_CONVERSATION: ConversationSubentryFlow}
@@ -312,7 +314,9 @@ class ConversationSubentryFlow(ConfigSubentryFlow):
                 CONF_MAX_TOKENS,
                 default=options.get(CONF_MAX_TOKENS, DEFAULT_MAX_TOKENS),
             ): NumberSelector(
-                NumberSelectorConfig(min=64, max=8192, step=64, mode="box")
+                NumberSelectorConfig(
+                    min=64, max=8192, step=64, mode=NumberSelectorMode.BOX
+                )
             ),
         }
 
