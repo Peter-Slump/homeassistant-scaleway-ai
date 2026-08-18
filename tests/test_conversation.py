@@ -3,12 +3,9 @@
 from __future__ import annotations
 
 from collections.abc import AsyncIterator
-from datetime import UTC, datetime
 from typing import Any
 from unittest.mock import MagicMock
 
-from homeassistant.components import conversation
-from homeassistant.helpers import llm
 import pytest
 
 from custom_components.scaleway_ai.entity import (
@@ -119,7 +116,9 @@ async def test_transform_stream_tool_call_assembly() -> None:
 
 def test_convert_content_roundtrip() -> None:
     """SystemContent/UserContent/AssistantContent map to expected OpenAI shapes."""
-    now = datetime.now(tz=UTC)
+    from homeassistant.components import conversation
+    from homeassistant.helpers import llm
+
     contents = [
         conversation.SystemContent(content="You are helpful."),
         conversation.UserContent(content="Turn on the lights."),
@@ -141,7 +140,6 @@ def test_convert_content_roundtrip() -> None:
             tool_result={"success": True},
         ),
     ]
-    _ = now  # silence unused var; SystemContent constructor accepts defaults
     messages = _convert_content_to_messages(contents)
 
     assert messages[0]["role"] == "system"
