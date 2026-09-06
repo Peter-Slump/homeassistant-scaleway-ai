@@ -5,7 +5,7 @@ description = "Home Assistant integration for Scaleway's AI APIs (Generative API
 readme = "README.md"
 requires-python = ">=3.13"
 license = { text = "MIT" }
-authors = [{ name = "Peter Slump", email = "peter@peakfijn.nl" }]
+authors = [{ name = "Peter Slump", email = "peter@codecraft.nl" }]
 
 [tool.ruff]
 line-length = 88
@@ -53,7 +53,12 @@ plugins = []
 exclude = ["tests/", "config/"]
 
 [[tool.mypy.overrides]]
-module = ["homeassistant.*", "pytest_homeassistant_custom_component.*", "voluptuous_openapi.*"]
+module = [
+    "homeassistant.*",
+    "pytest_homeassistant_custom_component.*",
+    "probatio.*",
+    "voluptuous_openapi.*",
+]
 ignore_missing_imports = true
 ignore_errors = true
 

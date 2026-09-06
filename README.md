@@ -5,8 +5,6 @@ to [Scaleway's Generative APIs](https://www.scaleway.com/en/generative-apis/) �
 EU-hosted, OpenAI-compatible LLM inference running in `fr-par`.
 
 > **Status:** v0.2 ships a conversation agent and speech-to-text via Whisper.
-> Text-to-speech is not offered by Scaleway as a hosted service today and will
-> only be added if that changes or via user-supplied Managed Inference endpoints.
 
 ## Features
 
@@ -63,8 +61,6 @@ directory and restart.
 
 - v0.1 — Conversation agent ✅
 - v0.2 — Speech-to-text via `whisper-large-v3` ✅
-- v0.x — Text-to-speech (only if/when Scaleway ships a hosted TTS model, or via
-  user-supplied Managed Inference URL)
 
 ## Development
 

@@ -37,7 +37,11 @@ from openai.types.chat import (
     ChatCompletionToolParam,
     ChatCompletionUserMessageParam,
 )
-from voluptuous_openapi import convert
+
+try:
+    from probatio import to_openapi  # type: ignore[import-not-found]
+except ImportError:  # Home Assistant < 2026.9
+    from voluptuous_openapi import convert as to_openapi
 
 from .const import (
     CONF_CHAT_MODEL,
@@ -62,7 +66,7 @@ def _format_tool(
     custom_serializer: Callable[[Any], Any] | None,
 ) -> ChatCompletionToolParam:
     """Translate a HA `llm.Tool` into an OpenAI chat.completions tool schema."""
-    parameters = convert(tool.parameters, custom_serializer=custom_serializer)
+    parameters = to_openapi(tool.parameters, custom_serializer=custom_serializer)
     return {
         "type": "function",
         "function": {
