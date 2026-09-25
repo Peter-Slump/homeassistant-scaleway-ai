@@ -18,6 +18,60 @@ CONF_STT_MODEL: Final = "stt_model"
 CONF_TEMPERATURE: Final = "temperature"
 CONF_MAX_TOKENS: Final = "max_tokens"
 CONF_TOP_P: Final = "top_p"
+CONF_LANGUAGE: Final = "language"
+
+LANG_EN: Final = "en"
+LANG_NL: Final = "nl"
+DEFAULT_LANGUAGE: Final = LANG_EN
+
+ERROR_AUTH: Final = "auth"
+ERROR_RATE_LIMIT: Final = "rate_limit"
+ERROR_CANNOT_CONNECT: Final = "cannot_connect"
+ERROR_TRUNCATED: Final = "truncated"
+ERROR_CONTENT_FILTER: Final = "content_filter"
+ERROR_UNKNOWN: Final = "unknown"
+
+# Short, speakable replies. Never include the raw Scaleway/OpenAI JSON body.
+SPOKEN_ERRORS: Final[dict[str, dict[str, str]]] = {
+    LANG_EN: {
+        ERROR_AUTH: (
+            "Sorry, Scaleway rejected the API key. Please reconfigure the integration."
+        ),
+        ERROR_RATE_LIMIT: (
+            "Sorry, Scaleway is rate limiting requests. Please try again shortly."
+        ),
+        ERROR_CANNOT_CONNECT: "Sorry, I could not reach Scaleway. Please try again.",
+        ERROR_TRUNCATED: "Sorry, the answer was cut off because it was too long.",
+        ERROR_CONTENT_FILTER: "Sorry, Scaleway blocked that response.",
+        ERROR_UNKNOWN: (
+            "Sorry, something went wrong talking to Scaleway. Please try again."
+        ),
+    },
+    LANG_NL: {
+        ERROR_AUTH: (
+            "Sorry, Scaleway heeft de API-sleutel geweigerd. "
+            "Configureer de integratie opnieuw."
+        ),
+        ERROR_RATE_LIMIT: (
+            "Sorry, Scaleway beperkt het aantal verzoeken. "
+            "Probeer het zo meteen opnieuw."
+        ),
+        ERROR_CANNOT_CONNECT: (
+            "Sorry, ik kon Scaleway niet bereiken. Probeer het opnieuw."
+        ),
+        ERROR_TRUNCATED: "Sorry, het antwoord is afgekapt omdat het te lang was.",
+        ERROR_CONTENT_FILTER: "Sorry, Scaleway heeft dat antwoord geblokkeerd.",
+        ERROR_UNKNOWN: (
+            "Sorry, er ging iets mis bij het praten met Scaleway. Probeer het opnieuw."
+        ),
+    },
+}
+
+
+def spoken_error(language: str | None, key: str) -> str:
+    """Return a speakable error for the configured language."""
+    messages = SPOKEN_ERRORS.get(language or "", SPOKEN_ERRORS[DEFAULT_LANGUAGE])
+    return messages.get(key, messages[ERROR_UNKNOWN])
 
 DEFAULT_BASE_URL: Final = "https://api.scaleway.ai/v1"
 

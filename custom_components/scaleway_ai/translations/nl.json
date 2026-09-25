@@ -51,10 +51,12 @@
           "data": {
             "name": "Naam",
             "prompt": "Instructies",
+            "language": "Taal",
             "llm_hass_api": "Home Assistant bedienen"
           },
           "data_description": {
             "prompt": "Instructies die het LLM zal volgen. Dit is een Jinja2-template met toegang tot Home Assistant-status (gebieden, gedeelde entiteiten, huidige tijd, \u2026).",
+            "language": "Taal voor gesproken foutmeldingen wanneer Scaleway niet kan antwoorden.",
             "llm_hass_api": "Welke Home Assistant LLM-API's de agent mag aanroepen. Laat leeg voor een pure chat-agent die niets kan bedienen."
           }
         },
@@ -100,6 +102,14 @@
             "prompt": "Optionele context om de transcriptiekwaliteit te verbeteren. Vertaal naar de pipetaal voor het beste resultaat met Nederlands of Engels."
           }
         }
+      }
+    }
+  },
+  "selector": {
+    "language": {
+      "options": {
+        "en": "Engels",
+        "nl": "Nederlands"
       }
     }
   }

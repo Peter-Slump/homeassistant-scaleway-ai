@@ -47,12 +47,14 @@ import voluptuous as vol
 from .const import (
     CONF_BASE_URL,
     CONF_CHAT_MODEL,
+    CONF_LANGUAGE,
     CONF_MAX_TOKENS,
     CONF_PROJECT_ID,
     CONF_STT_MODEL,
     CONF_TEMPERATURE,
     CONF_TOP_P,
     DEFAULT_BASE_URL,
+    DEFAULT_LANGUAGE,
     DEFAULT_MAX_TOKENS,
     DEFAULT_MODEL,
     DEFAULT_STT_MODEL,
@@ -63,6 +65,8 @@ from .const import (
     DOMAIN,
     FALLBACK_CHAT_MODELS,
     FALLBACK_STT_MODELS,
+    LANG_EN,
+    LANG_NL,
     LOGGER,
     SUBENTRY_TYPE_CONVERSATION,
     SUBENTRY_TYPE_STT,
@@ -85,6 +89,7 @@ RECOMMENDED_CONVERSATION_OPTIONS: dict[str, Any] = {
     CONF_TEMPERATURE: DEFAULT_TEMPERATURE,
     CONF_TOP_P: DEFAULT_TOP_P,
     CONF_MAX_TOKENS: DEFAULT_MAX_TOKENS,
+    CONF_LANGUAGE: DEFAULT_LANGUAGE,
     CONF_LLM_HASS_API: [llm.LLM_API_ASSIST],
     CONF_PROMPT: llm.DEFAULT_INSTRUCTIONS_PROMPT,
 }
@@ -298,6 +303,19 @@ class ConversationSubentryFlow(ConfigSubentryFlow):
                         )
                     },
                 ): TemplateSelector(),
+                vol.Optional(
+                    CONF_LANGUAGE,
+                    default=options.get(CONF_LANGUAGE, DEFAULT_LANGUAGE),
+                ): SelectSelector(
+                    SelectSelectorConfig(
+                        options=[
+                            SelectOptionDict(label="English", value=LANG_EN),
+                            SelectOptionDict(label="Dutch", value=LANG_NL),
+                        ],
+                        mode=SelectSelectorMode.DROPDOWN,
+                        translation_key="language",
+                    )
+                ),
                 vol.Optional(CONF_LLM_HASS_API): SelectSelector(
                     SelectSelectorConfig(options=hass_apis, multiple=True)
                 ),

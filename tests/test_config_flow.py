@@ -14,7 +14,9 @@ import pytest
 from custom_components.scaleway_ai.const import (
     CONF_API_KEY,
     CONF_BASE_URL,
+    CONF_LANGUAGE,
     DEFAULT_BASE_URL,
+    DEFAULT_LANGUAGE,
     DOMAIN,
     SUBENTRY_TYPE_CONVERSATION,
     SUBENTRY_TYPE_STT,
@@ -61,6 +63,12 @@ async def test_user_flow_happy_path(
     subentry_types = {s.subentry_type for s in entry.subentries.values()}
     assert SUBENTRY_TYPE_CONVERSATION in subentry_types
     assert SUBENTRY_TYPE_STT in subentry_types
+    conversation_data = next(
+        s.data
+        for s in entry.subentries.values()
+        if s.subentry_type == SUBENTRY_TYPE_CONVERSATION
+    )
+    assert conversation_data[CONF_LANGUAGE] == DEFAULT_LANGUAGE
 
 
 @pytest.mark.parametrize(

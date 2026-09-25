@@ -12,11 +12,21 @@ from typing import Literal
 from homeassistant.components import conversation
 from homeassistant.const import CONF_LLM_HASS_API, CONF_PROMPT, MATCH_ALL
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import HomeAssistantError
+from homeassistant.helpers import intent
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
 from . import ScalewayAIConfigEntry
-from .const import DOMAIN, SUBENTRY_TYPE_CONVERSATION
-from .entity import ScalewayAIBaseLLMEntity
+from .const import (
+    CONF_LANGUAGE,
+    DEFAULT_LANGUAGE,
+    DOMAIN,
+    ERROR_UNKNOWN,
+    LOGGER,
+    SUBENTRY_TYPE_CONVERSATION,
+    spoken_error,
+)
+from .entity import ScalewayAIBaseLLMEntity, ScalewayChatError
 
 PARALLEL_UPDATES = 0
 
@@ -85,5 +95,30 @@ class ScalewayAIConversationEntity(
         except conversation.ConverseError as err:
             return err.as_conversation_result()
 
-        await self._async_handle_chat_log(chat_log)
+        try:
+            await self._async_handle_chat_log(chat_log)
+        except ScalewayChatError as err:
+            return self._spoken_error_result(user_input, err.error_key)
+        except HomeAssistantError:
+            LOGGER.exception("Unexpected error talking to Scaleway")
+            return self._spoken_error_result(user_input, ERROR_UNKNOWN)
+
         return conversation.async_get_result_from_chat_log(user_input, chat_log)
+
+    def _spoken_error_result(
+        self,
+        user_input: conversation.ConversationInput,
+        error_key: str,
+    ) -> conversation.ConversationResult:
+        """Return a conversation result the voice pipeline can speak plainly."""
+        language = self.subentry.data.get(CONF_LANGUAGE, DEFAULT_LANGUAGE)
+        message = spoken_error(language, error_key)
+        intent_response = intent.IntentResponse(language=language)
+        intent_response.async_set_error(
+            intent.IntentResponseErrorCode.FAILED_TO_HANDLE,
+            message,
+        )
+        return conversation.ConversationResult(
+            response=intent_response,
+            conversation_id=user_input.conversation_id,
+        )

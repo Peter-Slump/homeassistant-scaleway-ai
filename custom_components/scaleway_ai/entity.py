@@ -53,9 +53,25 @@ from .const import (
     DEFAULT_TEMPERATURE,
     DEFAULT_TOP_P,
     DOMAIN,
+    ERROR_AUTH,
+    ERROR_CANNOT_CONNECT,
+    ERROR_CONTENT_FILTER,
+    ERROR_RATE_LIMIT,
+    ERROR_TRUNCATED,
+    ERROR_UNKNOWN,
     LOGGER,
     MAX_TOOL_ITERATIONS,
 )
+
+
+class ScalewayChatError(HomeAssistantError):
+    """Scaleway request failed; speak a localized plain-text message."""
+
+    def __init__(self, error_key: str) -> None:
+        """Store a stable error key instead of the raw API payload."""
+        super().__init__(error_key)
+        self.error_key = error_key
+
 
 if TYPE_CHECKING:
     from . import ScalewayAIConfigEntry
@@ -205,11 +221,9 @@ async def _transform_stream(  # noqa: PLR0912
             yield {"tool_calls": tool_calls}
             tool_call_buffers.clear()
         elif finish_reason == "length":
-            raise HomeAssistantError(
-                "Scaleway response truncated: max_tokens reached before completion"
-            )
+            raise ScalewayChatError(ERROR_TRUNCATED)
         elif finish_reason == "content_filter":
-            raise HomeAssistantError("Scaleway response blocked by content filter")
+            raise ScalewayChatError(ERROR_CONTENT_FILTER)
 
 
 class ScalewayAIBaseLLMEntity(Entity):
@@ -274,27 +288,27 @@ class ScalewayAIBaseLLMEntity(Entity):
 
             try:
                 stream = await client.chat.completions.create(**request_args)
+                content_stream: AsyncIterable[
+                    conversation.AssistantContent | conversation.ToolResultContent
+                ] = chat_log.async_add_delta_content_stream(
+                    self.entity_id,
+                    _transform_stream(chat_log, stream),
+                )
+                _ = [content async for content in content_stream]
+            except ScalewayChatError:
+                raise
             except openai.AuthenticationError as err:
                 LOGGER.error("Scaleway rejected our API key: %s", err)
-                raise HomeAssistantError(
-                    "Scaleway rejected the API key. Reconfigure the integration."
-                ) from err
+                raise ScalewayChatError(ERROR_AUTH) from err
             except openai.RateLimitError as err:
                 LOGGER.error("Scaleway rate-limited request: %s", err)
-                raise HomeAssistantError(
-                    "Scaleway rate-limited the request. Try again shortly."
-                ) from err
+                raise ScalewayChatError(ERROR_RATE_LIMIT) from err
+            except openai.APIConnectionError as err:
+                LOGGER.error("Could not reach Scaleway: %s", err)
+                raise ScalewayChatError(ERROR_CANNOT_CONNECT) from err
             except openai.OpenAIError as err:
                 LOGGER.error("Error talking to Scaleway: %s", err)
-                raise HomeAssistantError(f"Error talking to Scaleway: {err}") from err
-
-            content_stream: AsyncIterable[
-                conversation.AssistantContent | conversation.ToolResultContent
-            ] = chat_log.async_add_delta_content_stream(
-                self.entity_id,
-                _transform_stream(chat_log, stream),
-            )
-            _ = [content async for content in content_stream]
+                raise ScalewayChatError(ERROR_UNKNOWN) from err
 
             if not chat_log.unresponded_tool_results:
                 break
@@ -302,6 +316,7 @@ class ScalewayAIBaseLLMEntity(Entity):
 
 __all__ = [
     "ScalewayAIBaseLLMEntity",
+    "ScalewayChatError",
     "_convert_content_to_messages",
     "_format_tool",
     "_transform_stream",

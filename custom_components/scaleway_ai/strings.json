@@ -51,10 +51,12 @@
           "data": {
             "name": "[%key:common::config_flow::data::name%]",
             "prompt": "[%key:common::config_flow::data::prompt%]",
+            "language": "Language",
             "llm_hass_api": "[%key:common::config_flow::data::llm_hass_api%]"
           },
           "data_description": {
             "prompt": "Instructions the LLM will follow. This is a Jinja2 template with access to Home Assistant state (areas, exposed entities, current time, \u2026).",
+            "language": "Language used for spoken error messages when Scaleway cannot answer.",
             "llm_hass_api": "Which Home Assistant LLM APIs the agent may call. Leave empty for a pure chat agent that can't control anything."
           }
         },
@@ -100,6 +102,14 @@
             "prompt": "Optional context to improve transcription quality. Translate to the pipeline language for best results with Dutch or English."
           }
         }
+      }
+    }
+  },
+  "selector": {
+    "language": {
+      "options": {
+        "en": "English",
+        "nl": "Dutch"
       }
     }
   }
