@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import AsyncIterator
+import logging
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock
 
@@ -10,6 +11,7 @@ import pytest
 
 from custom_components.scaleway_ai.const import (
     CONF_LANGUAGE,
+    CONF_LOG_CONVERSATION,
     ERROR_CONTENT_FILTER,
     ERROR_TRUNCATED,
     ERROR_UNKNOWN,
@@ -225,6 +227,7 @@ async def test_handle_message_speaks_scaleway_error_instead_of_json() -> None:
     entity.subentry.data = {CONF_LANGUAGE: LANG_NL}
     user_input = MagicMock()
     user_input.conversation_id = "conv-1"
+    user_input.text = "Zet de lampen aan"
     user_input.extra_system_prompt = None
     user_input.as_llm_context = MagicMock(return_value="ctx")
     chat_log = MagicMock()
@@ -239,3 +242,62 @@ async def test_handle_message_speaks_scaleway_error_instead_of_json() -> None:
         LANG_NL, ERROR_UNKNOWN
     )
     assert "{" not in result.response.speech["plain"]["speech"]
+
+
+def _conversation_entity(*, log_conversation: bool) -> ScalewayAIConversationEntity:
+    entity = ScalewayAIConversationEntity.__new__(ScalewayAIConversationEntity)
+    entity.subentry = MagicMock()
+    entity.subentry.data = {
+        CONF_LANGUAGE: LANG_NL,
+        CONF_LOG_CONVERSATION: log_conversation,
+    }
+    return entity
+
+
+@pytest.mark.asyncio
+async def test_handle_message_logs_question_and_answer(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Enabled logging writes the question and spoken answer at INFO."""
+    entity = _conversation_entity(log_conversation=True)
+    user_input = MagicMock()
+    user_input.conversation_id = "conv-1"
+    user_input.text = "Zet de lampen aan"
+    user_input.extra_system_prompt = None
+    user_input.as_llm_context = MagicMock(return_value="ctx")
+    chat_log = MagicMock()
+    chat_log.async_provide_llm_data = AsyncMock()
+    entity._async_handle_chat_log = AsyncMock(  # type: ignore[method-assign]
+        side_effect=ScalewayChatError(ERROR_UNKNOWN)
+    )
+    expected_answer = spoken_error(LANG_NL, ERROR_UNKNOWN)
+
+    with caplog.at_level(logging.INFO, logger="custom_components.scaleway_ai"):
+        await entity._async_handle_message(user_input, chat_log)
+
+    assert "Question: Zet de lampen aan" in caplog.text
+    assert f"Answer: {expected_answer}" in caplog.text
+
+
+@pytest.mark.asyncio
+async def test_handle_message_does_not_log_when_disabled(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Conversation text stays out of the log when the option is off."""
+    entity = _conversation_entity(log_conversation=False)
+    user_input = MagicMock()
+    user_input.conversation_id = "conv-1"
+    user_input.text = "secret question"
+    user_input.extra_system_prompt = None
+    user_input.as_llm_context = MagicMock(return_value="ctx")
+    chat_log = MagicMock()
+    chat_log.async_provide_llm_data = AsyncMock()
+    entity._async_handle_chat_log = AsyncMock(  # type: ignore[method-assign]
+        side_effect=ScalewayChatError(ERROR_UNKNOWN)
+    )
+
+    with caplog.at_level(logging.INFO, logger="custom_components.scaleway_ai"):
+        await entity._async_handle_message(user_input, chat_log)
+
+    assert "secret question" not in caplog.text
+    assert "Question:" not in caplog.text

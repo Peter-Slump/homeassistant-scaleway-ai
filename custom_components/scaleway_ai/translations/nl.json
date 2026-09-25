@@ -52,11 +52,13 @@
             "name": "Naam",
             "prompt": "Instructies",
             "language": "Taal",
+            "log_conversation": "Vragen en antwoorden loggen",
             "llm_hass_api": "Home Assistant bedienen"
           },
           "data_description": {
             "prompt": "Instructies die het LLM zal volgen. Dit is een Jinja2-template met toegang tot Home Assistant-status (gebieden, gedeelde entiteiten, huidige tijd, \u2026).",
             "language": "Taal voor gesproken foutmeldingen wanneer Scaleway niet kan antwoorden.",
+            "log_conversation": "Schrijf elke vraag en elk antwoord naar het Home Assistant-logboek. Standaard uit.",
             "llm_hass_api": "Welke Home Assistant LLM-API's de agent mag aanroepen. Laat leeg voor een pure chat-agent die niets kan bedienen."
           }
         },

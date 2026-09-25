@@ -19,7 +19,9 @@ from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from . import ScalewayAIConfigEntry
 from .const import (
     CONF_LANGUAGE,
+    CONF_LOG_CONVERSATION,
     DEFAULT_LANGUAGE,
+    DEFAULT_LOG_CONVERSATION,
     DOMAIN,
     ERROR_UNKNOWN,
     LOGGER,
@@ -93,17 +95,25 @@ class ScalewayAIConversationEntity(
                 user_input.extra_system_prompt,
             )
         except conversation.ConverseError as err:
-            return err.as_conversation_result()
+            result = err.as_conversation_result()
+            self._log_question_and_answer(user_input.text, result)
+            return result
 
         try:
             await self._async_handle_chat_log(chat_log)
         except ScalewayChatError as err:
-            return self._spoken_error_result(user_input, err.error_key)
+            result = self._spoken_error_result(user_input, err.error_key)
+            self._log_question_and_answer(user_input.text, result)
+            return result
         except HomeAssistantError:
             LOGGER.exception("Unexpected error talking to Scaleway")
-            return self._spoken_error_result(user_input, ERROR_UNKNOWN)
+            result = self._spoken_error_result(user_input, ERROR_UNKNOWN)
+            self._log_question_and_answer(user_input.text, result)
+            return result
 
-        return conversation.async_get_result_from_chat_log(user_input, chat_log)
+        result = conversation.async_get_result_from_chat_log(user_input, chat_log)
+        self._log_question_and_answer(user_input.text, result)
+        return result
 
     def _spoken_error_result(
         self,
@@ -122,3 +132,19 @@ class ScalewayAIConversationEntity(
             response=intent_response,
             conversation_id=user_input.conversation_id,
         )
+
+    def _log_question_and_answer(
+        self,
+        question: str,
+        result: conversation.ConversationResult,
+    ) -> None:
+        """Write the user question and spoken answer to the Home Assistant log."""
+        if not self.subentry.data.get(CONF_LOG_CONVERSATION, DEFAULT_LOG_CONVERSATION):
+            return
+        answer = ""
+        try:
+            answer = result.response.speech["plain"]["speech"]
+        except (AttributeError, KeyError, TypeError):
+            answer = ""
+        LOGGER.info("Question: %s", question)
+        LOGGER.info("Answer: %s", answer)

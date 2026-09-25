@@ -28,6 +28,7 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import llm
 from homeassistant.helpers.httpx_client import get_async_client
 from homeassistant.helpers.selector import (
+    BooleanSelector,
     NumberSelector,
     NumberSelectorConfig,
     NumberSelectorMode,
@@ -48,6 +49,7 @@ from .const import (
     CONF_BASE_URL,
     CONF_CHAT_MODEL,
     CONF_LANGUAGE,
+    CONF_LOG_CONVERSATION,
     CONF_MAX_TOKENS,
     CONF_PROJECT_ID,
     CONF_STT_MODEL,
@@ -55,6 +57,7 @@ from .const import (
     CONF_TOP_P,
     DEFAULT_BASE_URL,
     DEFAULT_LANGUAGE,
+    DEFAULT_LOG_CONVERSATION,
     DEFAULT_MAX_TOKENS,
     DEFAULT_MODEL,
     DEFAULT_STT_MODEL,
@@ -90,6 +93,7 @@ RECOMMENDED_CONVERSATION_OPTIONS: dict[str, Any] = {
     CONF_TOP_P: DEFAULT_TOP_P,
     CONF_MAX_TOKENS: DEFAULT_MAX_TOKENS,
     CONF_LANGUAGE: DEFAULT_LANGUAGE,
+    CONF_LOG_CONVERSATION: DEFAULT_LOG_CONVERSATION,
     CONF_LLM_HASS_API: [llm.LLM_API_ASSIST],
     CONF_PROMPT: llm.DEFAULT_INSTRUCTIONS_PROMPT,
 }
@@ -316,6 +320,12 @@ class ConversationSubentryFlow(ConfigSubentryFlow):
                         translation_key="language",
                     )
                 ),
+                vol.Optional(
+                    CONF_LOG_CONVERSATION,
+                    default=options.get(
+                        CONF_LOG_CONVERSATION, DEFAULT_LOG_CONVERSATION
+                    ),
+                ): BooleanSelector(),
                 vol.Optional(CONF_LLM_HASS_API): SelectSelector(
                     SelectSelectorConfig(options=hass_apis, multiple=True)
                 ),

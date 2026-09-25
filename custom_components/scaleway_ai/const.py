@@ -19,6 +19,8 @@ CONF_TEMPERATURE: Final = "temperature"
 CONF_MAX_TOKENS: Final = "max_tokens"
 CONF_TOP_P: Final = "top_p"
 CONF_LANGUAGE: Final = "language"
+CONF_LOG_CONVERSATION: Final = "log_conversation"
+DEFAULT_LOG_CONVERSATION: Final = False
 
 LANG_EN: Final = "en"
 LANG_NL: Final = "nl"
