@@ -17,6 +17,7 @@ from __future__ import annotations
 
 from collections.abc import AsyncGenerator, AsyncIterable, Callable, Iterable
 import json
+import re
 from typing import TYPE_CHECKING, Any
 
 from homeassistant.components import conversation
@@ -77,16 +78,76 @@ if TYPE_CHECKING:
     from . import ScalewayAIConfigEntry
 
 
+# Scaleway rejects consecutive underscores/dashes (HA names like
+# `homeassistant__GetLiveContext`) even though a single `_` or `-` is allowed.
+_INVALID_FUNCTION_CHARS = re.compile(r"[^a-zA-Z0-9_-]")
+_REPEATED_SEPARATORS = re.compile(r"[_-]{2,}")
+_MAX_FUNCTION_NAME_LENGTH = 64
+
+
+def _sanitize_function_name(name: str) -> str:
+    """Rewrite a tool name so Scaleway's function-name validator accepts it."""
+    cleaned = _INVALID_FUNCTION_CHARS.sub("_", name)
+    cleaned = _REPEATED_SEPARATORS.sub("_", cleaned)
+    cleaned = cleaned.strip("_-")
+    if not cleaned:
+        cleaned = "tool"
+    if cleaned[0].isdigit():
+        cleaned = f"t_{cleaned}"
+    return cleaned[:_MAX_FUNCTION_NAME_LENGTH]
+
+
+def _unique_sanitized_name(name: str, used: set[str]) -> str:
+    """Sanitize `name` and append a suffix if that API name is already taken."""
+    base = _sanitize_function_name(name)
+    candidate = base
+    index = 2
+    while candidate in used:
+        suffix = f"_{index}"
+        candidate = f"{base[: _MAX_FUNCTION_NAME_LENGTH - len(suffix)]}{suffix}"
+        index += 1
+    used.add(candidate)
+    return candidate
+
+
+class _ToolNameMap:
+    """Bidirectional map between Home Assistant tool names and Scaleway names."""
+
+    def __init__(self, tool_names: Iterable[str] = ()) -> None:
+        """Build the map from the tools exposed this turn."""
+        self._to_api: dict[str, str] = {}
+        self._from_api: dict[str, str] = {}
+        used: set[str] = set()
+        for name in tool_names:
+            api_name = _unique_sanitized_name(name, used)
+            self._to_api[name] = api_name
+            self._from_api[api_name] = name
+
+    def to_api(self, name: str) -> str:
+        """Return the Scaleway-safe name for a Home Assistant tool."""
+        if name in self._to_api:
+            return self._to_api[name]
+        api_name = _unique_sanitized_name(name, set(self._from_api))
+        self._to_api[name] = api_name
+        self._from_api[api_name] = name
+        return api_name
+
+    def from_api(self, name: str) -> str:
+        """Return the Home Assistant tool name for a Scaleway function name."""
+        return self._from_api.get(name, name)
+
+
 def _format_tool(
     tool: llm.Tool,
     custom_serializer: Callable[[Any], Any] | None,
+    names: _ToolNameMap,
 ) -> ChatCompletionToolParam:
     """Translate a HA `llm.Tool` into an OpenAI chat.completions tool schema."""
     parameters = to_openapi(tool.parameters, custom_serializer=custom_serializer)
     return {
         "type": "function",
         "function": {
-            "name": tool.name,
+            "name": names.to_api(tool.name),
             "description": tool.description or "",
             "parameters": parameters,
         },
@@ -95,6 +156,7 @@ def _format_tool(
 
 def _convert_content_to_messages(
     chat_content: Iterable[conversation.Content],
+    names: _ToolNameMap | None = None,
 ) -> list[ChatCompletionMessageParam]:
     """Translate HA `ChatLog.content` into OpenAI chat.completions messages.
 
@@ -127,7 +189,11 @@ def _convert_content_to_messages(
                         id=tool_call.id,
                         type="function",
                         function={
-                            "name": tool_call.tool_name,
+                            "name": (
+                                names.to_api(tool_call.tool_name)
+                                if names
+                                else tool_call.tool_name
+                            ),
                             "arguments": json_dumps(tool_call.tool_args),
                         },
                     )
@@ -149,6 +215,7 @@ def _convert_content_to_messages(
 async def _transform_stream(  # noqa: PLR0912
     chat_log: conversation.ChatLog,
     stream: AsyncStream[ChatCompletionChunk],
+    names: _ToolNameMap | None = None,
 ) -> AsyncGenerator[conversation.AssistantContentDeltaDict]:
     """Convert an OpenAI chat.completions stream into HA delta dicts.
 
@@ -214,7 +281,7 @@ async def _transform_stream(  # noqa: PLR0912
                 tool_calls.append(
                     llm.ToolInput(
                         id=buf["id"],
-                        tool_name=buf["name"],
+                        tool_name=names.from_api(buf["name"]) if names else buf["name"],
                         tool_args=args,
                     )
                 )
@@ -263,15 +330,21 @@ class ScalewayAIBaseLLMEntity(Entity):
         top_p = options.get(CONF_TOP_P, DEFAULT_TOP_P)
         max_tokens = options.get(CONF_MAX_TOKENS, DEFAULT_MAX_TOKENS)
 
+        names = (
+            _ToolNameMap(t.name for t in chat_log.llm_api.tools)
+            if chat_log.llm_api
+            else _ToolNameMap()
+        )
+
         tools: list[ChatCompletionToolParam] | None = None
         if chat_log.llm_api:
             tools = [
-                _format_tool(t, chat_log.llm_api.custom_serializer)
+                _format_tool(t, chat_log.llm_api.custom_serializer, names)
                 for t in chat_log.llm_api.tools
             ]
 
         for _iteration in range(max_iterations):
-            messages = _convert_content_to_messages(chat_log.content)
+            messages = _convert_content_to_messages(chat_log.content, names)
 
             request_args: dict[str, Any] = {
                 "model": model,
@@ -292,7 +365,7 @@ class ScalewayAIBaseLLMEntity(Entity):
                     conversation.AssistantContent | conversation.ToolResultContent
                 ] = chat_log.async_add_delta_content_stream(
                     self.entity_id,
-                    _transform_stream(chat_log, stream),
+                    _transform_stream(chat_log, stream, names),
                 )
                 _ = [content async for content in content_stream]
             except ScalewayChatError:
@@ -317,7 +390,9 @@ class ScalewayAIBaseLLMEntity(Entity):
 __all__ = [
     "ScalewayAIBaseLLMEntity",
     "ScalewayChatError",
+    "_ToolNameMap",
     "_convert_content_to_messages",
     "_format_tool",
+    "_sanitize_function_name",
     "_transform_stream",
 ]

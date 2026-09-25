@@ -22,7 +22,10 @@ from custom_components.scaleway_ai.const import (
 from custom_components.scaleway_ai.conversation import ScalewayAIConversationEntity
 from custom_components.scaleway_ai.entity import (
     ScalewayChatError,
+    _ToolNameMap,
     _convert_content_to_messages,
+    _format_tool,
+    _sanitize_function_name,
     _transform_stream,
 )
 
@@ -161,6 +164,80 @@ def test_convert_content_roundtrip() -> None:
     assert messages[2]["tool_calls"][0]["function"]["name"] == "HassTurnOn"
     assert messages[3]["role"] == "tool"
     assert messages[3]["tool_call_id"] == "call_1"
+
+
+def test_sanitize_function_name_collapses_double_underscore() -> None:
+    """Scaleway rejects HA's `api__Tool` names; a single underscore is accepted."""
+    assert (
+        _sanitize_function_name("homeassistant__GetLiveContext")
+        == "homeassistant_GetLiveContext"
+    )
+    assert _sanitize_function_name("HassTurnOn") == "HassTurnOn"
+    assert "__" not in _sanitize_function_name("a__b--c___d")
+
+
+def test_format_tool_sends_sanitized_name() -> None:
+    """Tool schemas sent to Scaleway use the sanitized function name."""
+    import voluptuous as vol
+
+    tool = MagicMock()
+    tool.name = "homeassistant__GetLiveContext"
+    tool.description = "Current house state"
+    tool.parameters = vol.Schema({})
+    names = _ToolNameMap([tool.name])
+    formatted = _format_tool(tool, None, names)
+    assert formatted["function"]["name"] == "homeassistant_GetLiveContext"
+
+
+def test_convert_content_uses_sanitized_tool_name() -> None:
+    """Replay history with the same Scaleway-safe function name."""
+    from homeassistant.components import conversation
+    from homeassistant.helpers import llm
+
+    names = _ToolNameMap(["homeassistant__GetLiveContext"])
+    contents = [
+        conversation.AssistantContent(
+            agent_id="scaleway_ai.conv",
+            content=None,
+            tool_calls=[
+                llm.ToolInput(
+                    id="call_1",
+                    tool_name="homeassistant__GetLiveContext",
+                    tool_args={},
+                )
+            ],
+        ),
+    ]
+    messages = _convert_content_to_messages(contents, names)
+    assert messages[0]["tool_calls"][0]["function"]["name"] == (
+        "homeassistant_GetLiveContext"
+    )
+
+
+@pytest.mark.asyncio
+async def test_transform_stream_maps_sanitized_tool_name_back() -> None:
+    """Tool calls from Scaleway are mapped back to the original HA name."""
+    chat_log = MagicMock()
+    names = _ToolNameMap(["homeassistant__GetLiveContext"])
+    stream = _as_stream(
+        [
+            _fake_chunk(
+                tool_calls=[
+                    {
+                        "index": 0,
+                        "id": "call_1",
+                        "name": "homeassistant_GetLiveContext",
+                        "arguments": "{}",
+                    }
+                ]
+            ),
+            _fake_chunk(finish_reason="tool_calls"),
+        ]
+    )
+
+    deltas = [d async for d in _transform_stream(chat_log, stream, names)]
+    calls = next(d["tool_calls"] for d in deltas if "tool_calls" in d)
+    assert calls[0].tool_name == "homeassistant__GetLiveContext"
 
 
 def test_spoken_error_is_plain_text_in_english_and_dutch() -> None:
